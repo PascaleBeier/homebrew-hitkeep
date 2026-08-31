@@ -1,0 +1,47 @@
+name: Update formula
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-formula
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Update to latest stable HitKeep release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$(gh api repos/PascaleBeier/hitkeep/releases/latest --jq .tag_name)"
+          ./scripts/update-formula.sh "$tag"
+          ruby -c Formula/hitkeep.rb
+          git diff --check
+
+      - name: Publish formula update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          version="$(sed -nE 's|.*/v([0-9]+\.[0-9]+\.[0-9]+)\.tar\.gz"|\1|p' Formula/hitkeep.rb)"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add Formula/hitkeep.rb
+          git commit -m "chore: update HitKeep to ${version}"
+          gh auth setup-git
+          git push
