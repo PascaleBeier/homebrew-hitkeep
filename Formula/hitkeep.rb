@@ -8,6 +8,7 @@ class Hitkeep < Formula
   depends_on "go" => :build
 
   def install
+    ENV["GOTOOLCHAIN"] = "auto"
     ldflags = "-X hitkeep/cmd.Version=#{version}"
     system "go", "build", *std_go_args(ldflags:),
            "-tags", "hashicorpmetrics,timetzdata", "./cmd/hitkeep/main.go"
