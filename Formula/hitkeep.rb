@@ -8,6 +8,7 @@ class Hitkeep < Formula
   depends_on "go" => :build
 
   def install
+    ENV["CGO_ENABLED"] = "1"
     ENV["GOTOOLCHAIN"] = "auto"
     ldflags = "-X hitkeep/cmd.Version=#{version}"
     system "go", "build", *std_go_args(ldflags:),
